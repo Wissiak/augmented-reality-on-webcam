@@ -1,5 +1,17 @@
 '''
 Refer to ar_webcam.md for usage information
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+The code base for feature dection, feature matching, homography 
+decomposition and object projection has been provided as course material 
+to the course "Image Processing and Computer Vision 2" taught at OST 
+university and has been enhanced with a solver for focal lengths, 
+applying homographic projection to the reference image and 
+adapted to work with video input.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+@authors Patrick Wissiak, basic material by Martin Weisenhorn
+@date May 2023
 '''
 import matplotlib.pyplot as plt
 import numpy as np
@@ -282,7 +294,7 @@ def webcam_ar(video_frame):
     video_frame2 = video_frame.copy()
     start_time = time.time()
 
-    # Compute descriptors
+    # Compute descriptors and keypoints
     reference_keypoints, reference_descriptors = sift.detectAndCompute(reference_image, None)
     frame_keypoints, frame_descriptors = sift.detectAndCompute(video_frame, None)
 
