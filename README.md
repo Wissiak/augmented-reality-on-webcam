@@ -17,7 +17,7 @@ Use provided conda environment and run `python ar_webcam.py`.
 - RANSAC threshold may not be set too high because wrong matches corrupt the resulting homography.
 - x_frame equals the size of the real object. E.g. plane of the reference object is 20.5cm*28.5cm then the x_frame should look like `[[0, 0], [205, 0], [205, 285], [0, 285]]` - format: [x,y]
 
-### Register new reference object
+### Register new reference object
 To register a new reference object, do the following steps:
 1. Take a picture of the reference object - you can use `image_capture.py` - and set the name 'reference-2' in the console. To take a picture, focus the webcam window and press the key 'y'. This will save the image to `images/reference-2-0.png`. Rename the file to `reference-2.png`.
 2. Set fname in `unwarp_image.py` to the location of the image containing the new reference object and start `unwarp_image.py`
@@ -41,7 +41,7 @@ if ref_img_name == 'images/reference-2-cut.png':
 ```
 7. Start `ar_webcam.py` and verify that the image of your unwarped reference object is shown in the first window.
 
-### Scale the augmented object
+### Scale the augmented object
 The augmented object can be scaled by updating `Dx`, `Dy` and `Dz` in `ar_webcam.py`. For example if you want to show an augmented object that is the same size as the reference object, you can use:
 ```
 Dx = width
