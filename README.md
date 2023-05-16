@@ -7,8 +7,17 @@ Augmented Reality (AR), Wireframe, OpenCV, Pose Estimation, Focal Length Estimat
 ## Showcase
 The following videos show the possibilities of this script:
 - [showcase_matches.mov](./videos/showcase_matches.mov) Shows the matches from the reference object to the object in the scene with the matches. An top are all found matches and on the bottom only those filtered by RANSAC.
+
+https://github.com/Wissiak/augmented-reality-on-webcam/assets/31206249/ec211916-f05a-4c6d-add3-14bb69807ecd
+
 - [showcase_pose_estimation.mov](./videos/showcase_pose_estimation.mov) Warps the *reference image* into the pose seen in the video.
+
+https://github.com/Wissiak/augmented-reality-on-webcam/assets/31206249/d1b8dc62-ba4c-4186-9aab-da422fa19456
+
 - [shwocase_least_squares.mov](./videos/shwocase_least_squares.mov) Shows the difference between the engineering and the least squares method.
+
+https://github.com/Wissiak/augmented-reality-on-webcam/assets/31206249/d54ffce7-fff7-4f30-8c22-f5fee5d7cbd3
+
 
 ## Usage and Installation
 Use provided conda environment and run `python ar_webcam.py`. 
