@@ -1,5 +1,5 @@
 '''
-Refer to ar_webcam.md for usage information
+Refer to README.md for usage information
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 The code base for feature dection, feature matching, homography 
