@@ -179,8 +179,8 @@ Output
     t_c_cb: Translation vector
     K_c: Camera intrinsics
 '''
-def findPoseTransformationParamsLeastSquares(x_d_center, x_d, x_u):
-
+def findPoseTransformationParamsLeastSquares(shape, x_d, x_u):
+    x_d_center = np.array((shape[0]/2, shape[1]/2))
     # Define the quadratic function to fit
     def loss_func(params):
         x_d_center = params
@@ -193,9 +193,84 @@ def findPoseTransformationParamsLeastSquares(x_d_center, x_d, x_u):
     except:
         return None, None, None
     x_opt, y_opt = res.x
+    print(f"Simple method - cost: {res.cost}")
     cH_c_b = homographyFrom4PointCorrespondences(x_d - [x_opt, y_opt], x_u)
     R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(cH_c_b)
     K_c = np.array([[fx, 0, x_opt], [0, fy, y_opt], [0, 0, 1]])
+
+    return R_c_b, t_c_cb, K_c
+
+def findPoseTransformationParamsLeastSquaresStrict(shape, x_d, x_u):
+    # Fit for x_d_center
+    def loss_func(params):
+        f = params[0]
+        K_c = np.array([
+            [f, 0, shape[0]//2],
+            [0, f, shape[1]//2],
+            [0, 0, 1],
+        ])
+        # 6 DoF: 
+        # - Rotation in x direction
+        # - Rotation in y direction
+        # - Rotation in z direction
+        # - Tranlsation in x direction
+        # - Tranlsation in y direction
+        # - Tranlsation in z direction
+
+        # Define a rotation vector as rotation axis        
+        rodrigues_vector = np.array([params[1], params[2], params[3]])
+        R = cv.Rodrigues(rodrigues_vector)[0]
+
+        t_x = params[4]
+        t_y = params[5]
+        t_z = params[6]
+
+        H = K_c @ np.hstack((R[:, 0:2],[[t_x], [t_y], [t_z]]))
+
+        x_u_homogeneous = np.hstack((x_u, [[1],[1],[1],[1]])).T
+
+        x_uT_homogeneous = H @ x_u_homogeneous
+        x_uT = x_uT_homogeneous[0:2,:] / x_uT_homogeneous[2,:]
+
+        return np.ravel(x_d.T - x_uT)
+
+    '''
+    # Find starting points (alternative)
+    x_d_center = np.array((shape[0]/2, shape[1]/2))
+    cH_c_b = homographyFrom4PointCorrespondences(x_d - x_d_center, x_u)
+    R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(cH_c_b)
+    rotation_vector = cv.Rodrigues(R_c_b)[0]
+    params = [
+        (fx + fy) // 2,
+        rotation_vector[0,0],
+        rotation_vector[1,0],
+        rotation_vector[2,0],
+        t_c_cb[0,0],
+        t_c_cb[1,0],
+        t_c_cb[2,0],
+    ]
+    '''
+    
+    # TODO: use previous values for starting point if cost is below threshold
+    try:
+        params = [
+            1000, 0, 0, 0, 0, 0, 1
+        ]
+        res = least_squares(loss_func, params, method='lm')
+    except Exception as e: 
+        print(e)
+        return None, None, None
+    f_opt = res.x[0]
+    print(f"Exact method - cost: {res.cost}")
+
+    K_c = np.array([
+        [f_opt, 0, shape[0]//2],
+        [0, f_opt, shape[1]//2],
+        [0, 0, 1],
+    ])
+
+    R_c_b = cv.Rodrigues(res.x[1:4])[0].reshape(3,3)
+    t_c_cb = np.vstack(res.x[4:])
 
     return R_c_b, t_c_cb, K_c
 
@@ -342,7 +417,7 @@ def webcam_ar(video_frame):
         x_d_center = np.array((video_frame.shape[0]/2, video_frame.shape[1]/2))
         start_time = time.time()
 
-        R_c_b, t_c_cb, K_c = findPoseTransformationParamsLeastSquares(x_d_center, x_corners, x_frame)
+        R_c_b, t_c_cb, K_c = findPoseTransformationParamsLeastSquaresStrict(video_frame.shape, x_corners, x_frame)
         start_time = print_time("Least Squares Method", start_time)
         video_frame1 = draw_ar_object(video_frame1, K_c, R_c_b, t_c_cb)
 
