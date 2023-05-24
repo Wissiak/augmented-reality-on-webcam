@@ -33,13 +33,14 @@ from scipy.optimize import least_squares
 
 VERBOSE = False
 use_webcam = False
-input_video = 'videos/reference-1.mov'
-ref_img_name = 'images/reference-1-cut.png'
+input_video = 'videos/private/book1-reference-2-far.mov'
+ref_img_name = 'images/private/book1-reference-test-cut.png'
 engineering_method_active = False
+strict_method_active = False
 pose_estimation_active = False
 matches_active = False
 
-if ref_img_name == 'images/reference-1-cut.png':
+if 'book1' in ref_img_name:
     x_frame = np.float32([[0, 0], [205, 0], [205, 285], [0, 285]]) # order: top left, top right, bottom right, bottom left
 
 ###############################################
@@ -193,14 +194,19 @@ def findPoseTransformationParamsLeastSquares(shape, x_d, x_u):
     except:
         return None, None, None
     x_opt, y_opt = res.x
-    print(f"Simple method - cost: {res.cost}")
+    if VERBOSE: print(f"Simple LS method - cost: {res.cost}")
     cH_c_b = homographyFrom4PointCorrespondences(x_d - [x_opt, y_opt], x_u)
     R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(cH_c_b)
     K_c = np.array([[fx, 0, x_opt], [0, fy, y_opt], [0, 0, 1]])
 
     return R_c_b, t_c_cb, K_c
 
+
+initial_params = [
+    1000, 0, 0, 0, 0, 0, 1
+]
 def findPoseTransformationParamsLeastSquaresStrict(shape, x_d, x_u):
+    global initial_params
     # Fit for x_d_center
     def loss_func(params):
         f = params[0]
@@ -251,17 +257,16 @@ def findPoseTransformationParamsLeastSquaresStrict(shape, x_d, x_u):
     ]
     '''
     
-    # TODO: use previous values for starting point if cost is below threshold
     try:
-        params = [
-            1000, 0, 0, 0, 0, 0, 1
-        ]
-        res = least_squares(loss_func, params, method='lm')
+        res = least_squares(loss_func, initial_params, method='lm')
     except Exception as e: 
         print(e)
         return None, None, None
     f_opt = res.x[0]
-    print(f"Exact method - cost: {res.cost}")
+    print(f"Strict method - cost: {res.cost}")
+    if res.cost > 20:
+        return None, None, None
+    initial_params = res.x # Overwrite starting values for next iteration
 
     K_c = np.array([
         [f_opt, 0, shape[0]//2],
@@ -366,7 +371,10 @@ def draw_ar_object(video_frame, K_c, R_c_b, t_c_cb):
 
 def webcam_ar(video_frame):
     video_frame1 = video_frame.copy()
-    video_frame2 = video_frame.copy()
+    if engineering_method_active:
+        video_frame2 = video_frame.copy()
+    if strict_method_active:
+        video_frame3 = video_frame.copy()
     start_time = time.time()
 
     # Compute descriptors and keypoints
@@ -377,7 +385,7 @@ def webcam_ar(video_frame):
 
     # 3. Match keypoints and show the matches
     matches = matcher.match(frame_descriptors, reference_descriptors)
-    print('{} matches found'.format(len(matches)))
+    if VERBOSE: print('{} matches found'.format(len(matches)))
 
     start_time = print_time("Finding matches", start_time)
 
@@ -396,7 +404,7 @@ def webcam_ar(video_frame):
 
     reliable_matches_indices = np.nonzero(matches_mask)[0]
     no_of_matches = len(reliable_matches_indices)
-    print(f"Number of stable matches: {no_of_matches}")
+    if VERBOSE: print(f"Number of stable matches: {no_of_matches}")
 
     if matches_active:
         reliable_matches = np.array(matches)[reliable_matches_indices]
@@ -417,13 +425,19 @@ def webcam_ar(video_frame):
         x_d_center = np.array((video_frame.shape[0]/2, video_frame.shape[1]/2))
         start_time = time.time()
 
-        R_c_b, t_c_cb, K_c = findPoseTransformationParamsLeastSquaresStrict(video_frame.shape, x_corners, x_frame)
+        R_c_b, t_c_cb, K_c = findPoseTransformationParamsLeastSquares(video_frame.shape, x_corners, x_frame)
         start_time = print_time("Least Squares Method", start_time)
         video_frame1 = draw_ar_object(video_frame1, K_c, R_c_b, t_c_cb)
 
-        start_time = time.time()
+        if strict_method_active:
+            start_time = time.time()
+            R_c_b, t_c_cb, K_c = findPoseTransformationParamsLeastSquaresStrict(video_frame3.shape, x_corners, x_frame)
+            start_time = print_time("Strict LS Method", start_time)
+            video_frame3 = draw_ar_object(video_frame3, K_c, R_c_b, t_c_cb)
+
 
         if engineering_method_active:
+            start_time = time.time()
             # To show the time difference between the two methods:
             R_c_b, t_c_cb, K_c = findPoseTransformationParams(x_d_center, x_corners, x_frame)
             start_time = print_time("Engineering Method", start_time)
@@ -432,6 +446,8 @@ def webcam_ar(video_frame):
     cv.imshow("Least Squares Method", video_frame1)
     if engineering_method_active:
         cv.imshow("Engineering Method", video_frame2)
+    if strict_method_active:
+        cv.imshow("Strict LS Method", video_frame3)
     
     if pose_estimation_active:
         # To show the transformed reference image based on the homography transformation:

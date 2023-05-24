@@ -59,20 +59,21 @@ def four_point_transform(image, pts):
 	return warped
 
 
-fname = 'images/reference-1'
+fname = 'images/private/reference-test-0'
 ext = '.png'
 image = cv2.imread(fname + ext)
 if fname == 'images/reference-1':
 	pts = np.array([
 		(152, 23), # top left
 		(740, 25), # top right
-		(775, 863), # bottom left
-		(144, 861) # bottom right
+		(775, 863), # bottom right
+		(144, 861) # bottom left
 	])
 
 def do_warp(points):
 	warped = four_point_transform(image, points)
 	plt.imshow(cv2.cvtColor(warped, cv2.COLOR_BGR2RGB))
+	plt.title("Warped image")
 	plt.show()
 
 	cv2.imwrite(f'{fname}-cut{ext}', warped)
@@ -85,6 +86,7 @@ except NameError:
 	ax = fig.add_subplot(id)
 	
 	ax.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+	plt.title("Initial Image")
 
 	coords = np.zeros((4, 2)).astype(np.uint16)
 
@@ -103,8 +105,6 @@ except NameError:
 			fig.canvas.mpl_disconnect(cid)
 			plt.close()
 			do_warp(coords)
-
-		return coords
 	cid = fig.canvas.mpl_connect('button_press_event', onclick)
 	plt.show()
 else:
