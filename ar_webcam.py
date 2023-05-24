@@ -18,6 +18,9 @@ import numpy as np
 import cv2 as cv
 import time
 from scipy.optimize import least_squares
+import os
+from dotenv import load_dotenv
+from distutils.util import strtobool
 
 ###############################################
 # Adaptable parameters:
@@ -31,14 +34,16 @@ from scipy.optimize import least_squares
 #   x_frame: Corner points of reference image (see notes ar_webcam.md for details)
 ###############################################
 
-VERBOSE = False
-use_webcam = False
-input_video = 'videos/private/book1-reference-2-far.mov'
-ref_img_name = 'images/private/book1-reference-test-cut.png'
-engineering_method_active = False
-strict_method_active = False
-pose_estimation_active = False
-matches_active = False
+load_dotenv()
+
+VERBOSE = strtobool(os.getenv('VERBOSE', 'False'))
+use_webcam = strtobool(os.getenv('use_webcam', 'False'))
+input_video = os.getenv('input_video') or 'videos/reference-1.mov'
+ref_img_name = os.getenv('ref_img_name') or 'images/book1-reference-cut.png'
+engineering_method_active = strtobool(os.getenv('engineering_method_active', 'False'))
+strict_method_active = strtobool(os.getenv('strict_method_active', 'False'))
+pose_estimation_active = strtobool(os.getenv('pose_estimation_active', 'False'))
+matches_active = strtobool(os.getenv('matches_active', 'False'))
 
 if 'book1' in ref_img_name:
     x_frame = np.float32([[0, 0], [205, 0], [205, 285], [0, 285]]) # order: top left, top right, bottom right, bottom left

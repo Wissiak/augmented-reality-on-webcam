@@ -64,4 +64,4 @@ Where width and height correspond to the "real world coordinates". This will the
 The `warpPerspective` function from opencv can be used to warp the reference object to the estimated pose in the scene:
 ![](./pose-estimation.png)
 
-To activate the functionality, set the switch`pose_estimation_active` in `ar_webcam.py` to `True`.
+To activate the functionality, set `pose_estimation_active=True` in the `.env` file.
