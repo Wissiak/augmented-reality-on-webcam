@@ -208,9 +208,14 @@ def findPoseTransformationParamsLeastSquares(shape, x_d, x_u):
 
 
 initial_params = [
-    1000, 0, 0, 0, 0, 0, 1
+    0, 0, 0, 0, 0, 0, 1
 ]
-def findPoseTransformationParamsLeastSquaresStrict(shape, x_d, x_u):
+'''
+This function tries to minimize the reprojection error between the distorted image
+points from the object in the scene and the undistorted image points of the reference
+image by using Levenberg-Marquardt 
+'''
+def findPoseTransformationParamsExactCorrespondence(shape, x_d, x_u):
     global initial_params
     # Fit for x_d_center
     def loss_func(params):
@@ -244,23 +249,6 @@ def findPoseTransformationParamsLeastSquaresStrict(shape, x_d, x_u):
         x_uT = x_uT_homogeneous[0:2,:] / x_uT_homogeneous[2,:]
 
         return np.ravel(x_d.T - x_uT)
-
-    '''
-    # Find starting points (alternative)
-    x_d_center = np.array((shape[0]/2, shape[1]/2))
-    cH_c_b = homographyFrom4PointCorrespondences(x_d - x_d_center, x_u)
-    R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(cH_c_b)
-    rotation_vector = cv.Rodrigues(R_c_b)[0]
-    params = [
-        (fx + fy) // 2,
-        rotation_vector[0,0],
-        rotation_vector[1,0],
-        rotation_vector[2,0],
-        t_c_cb[0,0],
-        t_c_cb[1,0],
-        t_c_cb[2,0],
-    ]
-    '''
     
     try:
         res = least_squares(loss_func, initial_params, method='lm')
@@ -268,8 +256,11 @@ def findPoseTransformationParamsLeastSquaresStrict(shape, x_d, x_u):
         print(e)
         return None, None, None
     f_opt = res.x[0]
-    print(f"Strict method - cost: {res.cost}")
-    if res.cost > 20:
+    if VERBOSE: print(f"\"Exact\" method - cost: {res.cost}")
+    if res.cost > 10:
+        initial_params = [
+            0, 0, 0, 0, 0, 0, 1
+        ]
         return None, None, None
     initial_params = res.x # Overwrite starting values for next iteration
 
@@ -284,7 +275,11 @@ def findPoseTransformationParamsLeastSquaresStrict(shape, x_d, x_u):
 
     return R_c_b, t_c_cb, K_c
 
-
+'''
+This method tries to minimize the difference between the two obtained
+focal lengths. It does so by trying out pixels around one of the corners 
+of the image points of the object in the scene. 
+'''
 def findPoseTransformationParams(x_d_center, x_d, x_u):
     # Estimate the homography from the body planar surface to the image coordinates with the origin in the center   
     ratio = []
@@ -436,7 +431,7 @@ def webcam_ar(video_frame):
 
         if strict_method_active:
             start_time = time.time()
-            R_c_b, t_c_cb, K_c = findPoseTransformationParamsLeastSquaresStrict(video_frame3.shape, x_corners, x_frame)
+            R_c_b, t_c_cb, K_c = findPoseTransformationParamsExactCorrespondence(video_frame3.shape, x_corners, x_frame)
             start_time = print_time("Strict LS Method", start_time)
             video_frame3 = draw_ar_object(video_frame3, K_c, R_c_b, t_c_cb)
 
