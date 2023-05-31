@@ -42,6 +42,7 @@ input_video = os.getenv('input_video') or 'videos/reference-1.mov'
 ref_img_name = os.getenv('ref_img_name') or 'images/book1-reference-cut.png'
 engineering_method_active = strtobool(os.getenv('engineering_method_active', 'False'))
 strict_method_active = strtobool(os.getenv('strict_method_active', 'False'))
+simple_method_active = strtobool(os.getenv('simple_method_active', 'False'))
 pose_estimation_active = strtobool(os.getenv('pose_estimation_active', 'False'))
 matches_active = strtobool(os.getenv('matches_active', 'False'))
 
@@ -280,7 +281,8 @@ This method tries to minimize the difference between the two obtained
 focal lengths. It does so by trying out pixels around one of the corners 
 of the image points of the object in the scene. 
 '''
-def findPoseTransformationParams(x_d_center, x_d, x_u):
+def findPoseTransformationParams(shape, x_d, x_u):
+    x_d_center = np.array((shape[0]/2, shape[1]/2))
     # Estimate the homography from the body planar surface to the image coordinates with the origin in the center   
     ratio = []
     solution = []
@@ -323,6 +325,41 @@ def findPoseTransformationParams(x_d_center, x_d, x_u):
     cx = x_d_center[0]
     cy = x_d_center[1]
     K_c = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
+
+    return R_c_b, t_c_cb, K_c
+
+def focalLength(H_c_b):
+    h11 = H_c_b[0, 0]
+    h12 = H_c_b[0, 1]
+    h21 = H_c_b[1, 0]
+    h22 = H_c_b[1, 1]
+    h31 = H_c_b[2, 0]
+    h32 = H_c_b[2, 1]
+    fsquare = - (h11 * h12 + h21 * h22) / (h31 * h32)
+    return np.sqrt(fsquare)
+
+def rigidBodyMotion(H_c_b, f):
+    K_c = np.array([[f, 0, 0], [0, f, 0], [0, 0, 1]])
+    V = np.linalg.inv(K_c) @ H_c_b
+    rx = V[:, 0] / np.linalg.norm(V[:, 0])
+    rz = np.cross(rx, V[:, 1])
+    rz = rz / np.linalg.norm(rz)
+    ry = np.cross(rz, rx)
+    R_c_b = np.hstack((rx, ry, rz)).reshape((3,3)).T
+    t_c_cb = V[:, [2]] / np.linalg.norm(V[:, 0])
+    return R_c_b, t_c_cb
+
+def findPoseTransformationParamsNew(shape, x_d, x_u):
+    x_c_center = np.array((shape[0]/2, shape[1]/2))
+    cH_c_b = homographyFrom4PointCorrespondences(x_d - x_c_center, x_u)
+    f = focalLength(cH_c_b)
+    try:
+        R_c_b, t_c_cb = rigidBodyMotion(cH_c_b, f)
+    except:
+        print("Could not resolve pose")
+        return None, None, None
+
+    K_c = np.array([[f, 0, x_c_center[0]], [0, f, x_c_center[1]], [0, 0, 1]])
 
     return R_c_b, t_c_cb, K_c
 
@@ -375,6 +412,8 @@ def webcam_ar(video_frame):
         video_frame2 = video_frame.copy()
     if strict_method_active:
         video_frame3 = video_frame.copy()
+    if simple_method_active:
+        video_frame4 = video_frame.copy()
     start_time = time.time()
 
     # Compute descriptors and keypoints
@@ -422,32 +461,40 @@ def webcam_ar(video_frame):
         # Create homography from undistorted image (in pseudo real world dimensions) to corners of reference object in cluttered scene
         x_corners = np.concatenate((transformed_corners[:,:,1], transformed_corners[:,:,0]), axis=1) # top left, top right, bottom right, bottom left
 
-        x_d_center = np.array((video_frame.shape[0]/2, video_frame.shape[1]/2))
         start_time = time.time()
 
         R_c_b, t_c_cb, K_c = findPoseTransformationParamsLeastSquares(video_frame.shape, x_corners, x_frame)
         start_time = print_time("Least Squares Method", start_time)
         video_frame1 = draw_ar_object(video_frame1, K_c, R_c_b, t_c_cb)
 
-        if strict_method_active:
-            start_time = time.time()
-            R_c_b, t_c_cb, K_c = findPoseTransformationParamsExactCorrespondence(video_frame3.shape, x_corners, x_frame)
-            start_time = print_time("Strict LS Method", start_time)
-            video_frame3 = draw_ar_object(video_frame3, K_c, R_c_b, t_c_cb)
-
 
         if engineering_method_active:
             start_time = time.time()
             # To show the time difference between the two methods:
-            R_c_b, t_c_cb, K_c = findPoseTransformationParams(x_d_center, x_corners, x_frame)
+            R_c_b, t_c_cb, K_c = findPoseTransformationParams(video_frame.shape, x_corners, x_frame)
             start_time = print_time("Engineering Method", start_time)
             video_frame2 = draw_ar_object(video_frame2, K_c, R_c_b, t_c_cb)
+
+        if strict_method_active:
+            start_time = time.time()
+            R_c_b, t_c_cb, K_c = findPoseTransformationParamsExactCorrespondence(video_frame.shape, x_corners, x_frame)
+            start_time = print_time("Strict LS Method", start_time)
+            video_frame3 = draw_ar_object(video_frame3, K_c, R_c_b, t_c_cb)
+
+        if simple_method_active:
+            start_time = time.time()
+            # To show the time difference between the two methods:
+            R_c_b, t_c_cb, K_c = findPoseTransformationParamsNew(video_frame.shape, x_corners, x_frame)
+            start_time = print_time("Simple Method", start_time)
+            video_frame4 = draw_ar_object(video_frame4, K_c, R_c_b, t_c_cb)
 
     cv.imshow("Least Squares Method", video_frame1)
     if engineering_method_active:
         cv.imshow("Engineering Method", video_frame2)
     if strict_method_active:
         cv.imshow("Strict LS Method", video_frame3)
+    if simple_method_active:
+        cv.imshow("Simple Method", video_frame4)
     
     if pose_estimation_active:
         # To show the transformed reference image based on the homography transformation:
@@ -465,7 +512,13 @@ if use_webcam:
 
         webcam_ar(video_frame)
 else:
-    for fno in range(0, total_frames, 3):
+    fno = 0
+    while fno < total_frames:
+        key = cv.waitKey(1)
+        if key == ord('a'):
+            if fno > 20:
+                fno -= 21
+            continue
         cap.set(cv.CAP_PROP_POS_FRAMES, fno) # Speed up video mode
         rval, video_frame = cap.read()
 
@@ -474,11 +527,11 @@ else:
 
         video_frame = cv.pyrDown(video_frame, dstsize=(N // 2, M // 2))
 
-        key = cv.waitKey(1)
         if key == ord('q'): # exit on Q
             break
 
         webcam_ar(video_frame)
+        fno += 1
 
 cap.release()
 cv.destroyAllWindows()
