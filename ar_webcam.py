@@ -333,8 +333,10 @@ def focalLength(H_c_b):
     h12 = H_c_b[0, 1]
     h21 = H_c_b[1, 0]
     h22 = H_c_b[1, 1]
-    h31 = H_c_b[2, 0]
-    h32 = H_c_b[2, 1]
+    h31 = H_c_b[2, 0] # Contains f^2
+    h32 = H_c_b[2, 1] # Contains f^2
+    # First two columns are orthogonal: 0 = h11*h12 + h21*h22 + h31*h32
+    # -> solve for f:
     fsquare = - (h11 * h12 + h21 * h22) / (h31 * h32)
     return np.sqrt(fsquare)
 
@@ -349,6 +351,10 @@ def rigidBodyMotion(H_c_b, f):
     t_c_cb = V[:, [2]] / np.linalg.norm(V[:, 0])
     return R_c_b, t_c_cb
 
+'''
+New method with assumption that focal lengths are equal and
+axes of rotation matrix are orthogonal. 
+'''
 def findPoseTransformationParamsNew(shape, x_d, x_u):
     x_c_center = np.array((shape[0]/2, shape[1]/2))
     cH_c_b = homographyFrom4PointCorrespondences(x_d - x_c_center, x_u)
@@ -513,11 +519,16 @@ if use_webcam:
         webcam_ar(video_frame)
 else:
     fno = 0
+    FPS = 7
     while fno < total_frames:
         key = cv.waitKey(1)
         if key == ord('a'):
-            if fno > 20:
-                fno -= 21
+            if fno >= FPS * 3:
+                fno -= FPS * 3
+            continue
+        if key == ord('d'):
+            if fno <= total_frames - FPS * 3:
+                fno += FPS * 3
             continue
         cap.set(cv.CAP_PROP_POS_FRAMES, fno) # Speed up video mode
         rval, video_frame = cap.read()
@@ -527,11 +538,13 @@ else:
 
         video_frame = cv.pyrDown(video_frame, dstsize=(N // 2, M // 2))
 
+        cv.putText(video_frame, f"Current frame: {fno}", (10, 10), cv.FONT_HERSHEY_SIMPLEX, 0.35, (0,255,0))
+
         if key == ord('q'): # exit on Q
             break
 
         webcam_ar(video_frame)
-        fno += 1
+        fno += FPS
 
 cap.release()
 cv.destroyAllWindows()
