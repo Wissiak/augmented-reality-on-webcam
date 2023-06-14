@@ -343,12 +343,12 @@ def focalLength(H_c_b):
 def rigidBodyMotion(H_c_b, f):
     K_c = np.array([[f, 0, 0], [0, f, 0], [0, 0, 1]])
     V = np.linalg.inv(K_c) @ H_c_b
-    rx = V[:, 0] / np.linalg.norm(V[:, 0])
-    rz = np.cross(rx, V[:, 1])
-    rz = rz / np.linalg.norm(rz)
-    ry = np.cross(rz, rx)
+    V = V  / np.linalg.norm(V[:, 0])
+    rx = V[:, 0]
+    ry = V[:, 1] / np.linalg.norm(V[:, 1])
+    rz = np.cross(rx, ry)
     R_c_b = np.hstack((rx, ry, rz)).reshape((3,3)).T
-    t_c_cb = V[:, [2]] / np.linalg.norm(V[:, 0])
+    t_c_cb = V[:, [2]]
     return R_c_b, t_c_cb
 
 '''
