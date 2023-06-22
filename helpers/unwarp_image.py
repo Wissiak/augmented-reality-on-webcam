@@ -59,10 +59,10 @@ def four_point_transform(image, pts):
 	return warped
 
 
-fname = 'images/private/reference-test-0'
+fname = 'images/book1-reference'
 ext = '.png'
 image = cv2.imread(fname + ext)
-if fname == 'images/reference-1':
+if fname == 'images/book1-reference':
 	pts = np.array([
 		(152, 23), # top left
 		(740, 25), # top right
@@ -86,9 +86,9 @@ except NameError:
 	ax = fig.add_subplot(id)
 	
 	ax.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-	plt.title("Initial Image")
+	plt.title("Initial Image (right click on 4 edges)")
 
-	coords = np.zeros((4, 2)).astype(np.uint16)
+	coords = np.zeros((4, 2))
 
 	no_points = 0
 	def onclick(event):
