@@ -1,6 +1,8 @@
 # Augmented Reality on Webcam
 Show virtual object on plane of reference image without camera calibration. 
 
+This work was done in spring of 2023 after attending the Image Processing and Computer Vision course at OST in Rapperswil, where the underlying algorithms are taught.
+
 **Tags**
 Augmented Reality (AR), Wireframe, OpenCV, Pose Estimation, Focal Length Estimation, Homography, Planar Object, SIFT
 
