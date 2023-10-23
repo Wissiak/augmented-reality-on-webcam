@@ -30,6 +30,12 @@ Use provided conda environment and run `python ar_webcam.py`.
 To register a new reference object, do the following steps:
 1. Take a picture of the reference object - you can use `image_capture.py` - and set the name 'reference-2' in the console. To take a picture, focus the webcam window and press the key 'y'. This will save the image to `images/reference-2-0.png`. Rename the file to `reference-2.png`.
 2. Set fname in `unwarp_image.py` to the location of the image containing the new reference object and start `unwarp_image.py`
+
+-----------------------------------------------------------
+In the newst version of `unwarp_image.py`, you can click on all four corners and it directly saves the unwarped image to `images/reference-2-cut.png`and you can continue at step 6.
+
+----------------------------------------------------------------
+
 3. Hover the corner points of the planar object as given in the underneath image and write down the coordinates.
 ![](./unwarp_image.png)
 4. Set your coordinates in `unwarp_image.py`:
