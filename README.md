@@ -3,7 +3,7 @@ Show virtual object on plane of reference image without camera calibration.
 
 This work was done in spring of 2023 after attending the Image Processing and Computer Vision course at OST in Rapperswil, where the underlying algorithms are taught.
 
-For an Android version of this project, please have a look at [Wissiak/augmented-reality-on-android](https://github.com/Wissiak/augmented-reality-on-android/tree/main).
+For an Android version of this project, please have a look at [Augmented Reality on Android](https://github.com/Wissiak/augmented-reality-on-android/tree/main) and also check out [Augmented Reality with 3D Rendering using Metal Shaders and OpenCV](https://github.com/Wissiak/augmented-reality-with-3d-rendering-using-metal-shaders-and-opencv) for a C++ version. 
 ## Showcase
 The following videos show the possibilities of this script:
 - [showcase_matches.mov](./videos/showcase_matches.mov) Shows the matches from the reference object to the object in the scene with the matches. An top are all found matches and on the bottom only those filtered by RANSAC.
